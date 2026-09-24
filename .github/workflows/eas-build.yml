@@ -16,13 +16,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Ensure EAS project is configured
+        run: |
+          if ! node -e "const app = require('./app.json'); if (!app.expo?.extra?.eas?.projectId) process.exit(1);"; then
+            eas init --account semcitychris --non-interactive
+          fi
 
       - name: Install dependencies
         run: npm install
