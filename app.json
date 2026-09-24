@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Sem City Collective",
+    "slug": "sem-city-collective",
+    "ios": {
+      "bundleIdentifier": "com.semcity.collective",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    }
+  }
+}
