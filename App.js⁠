@@ -1,0 +1,686 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  StatusBar,
+} from 'react-native';
+import { WebView } from 'react-native-webview';
+
+const AUDIO_STREAM_URL = 'https://files.catbox.moe/vx1gwz.mp3';
+
+const audioBridgeHTML = `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>body { background: transparent; margin: 0; padding: 0; }</style>
+    </head>
+    <body>
+      <audio id="semcity-player" src="${AUDIO_STREAM_URL}" loop playsinline autoplay></audio>
+      <script>
+        const player = document.getElementById('semcity-player');
+        player.play().catch(function(e) { console.log('Autoplay handled:', e); });
+      </script>
+    </body>
+  </html>
+`;
+
+const POPUP_MENU = [
+  {
+    id: 'dish_1',
+    name: 'Cast-Iron Buttermilk Fried Chicken',
+    side: 'Sweet Cornmeal Waffle & Spiced Cane Butter',
+    tierAccess: ['Town Family Table', 'VIP Exquisite'],
+    badge: 'HOUSE SIGNATURE',
+  },
+  {
+    id: 'dish_2',
+    name: 'Smoked Turkey Collard Greens',
+    side: 'Rich Potlikker Cup & Skillet Cornbread',
+    tierAccess: ['Town Family Table', 'VIP Exquisite'],
+    badge: 'FAMILY RECIPE',
+  },
+  {
+    id: 'dish_3',
+    name: 'Blackened Catfish & Dirty Herb Rice',
+    side: 'Charred Lemon Wheel & Pickled Okra',
+    tierAccess: ['VIP Exquisite'],
+    badge: 'VIP COURSE',
+  },
+  {
+    id: 'dish_4',
+    name: 'Bourbon Peach Cobbler',
+    side: 'Brown Sugar Chantilly Cream',
+    tierAccess: ['VIP Exquisite'],
+    badge: 'VIP FINALE',
+  },
+];
+
+async function fetchDishSommelier(dish) {
+  const fallbacks = {
+    dish_1: {
+      primaryTerpene: 'Limonene',
+      secondaryTerpene: 'Caryophyllene',
+      aromaBouquet: 'Cold-pressed lemon rind, cracked black peppercorn, warm savory batter.',
+      palateNote: 'Sharp citrus cuts directly through the fried batter while pepper grounds the spice rub.',
+      townSoundtrack: 'Sem City Chris — "Real One By Macz"',
+      sensoryRitual: 'Inhale the citrus notes over the steam before your first bite.',
+    },
+    dish_2: {
+      primaryTerpene: 'Myrcene',
+      secondaryTerpene: 'Humulene',
+      aromaBouquet: 'Earthy forest floor, slow-simmered greens, cured hickory woodsmoke.',
+      palateNote: 'Deep myrcene reinforces the rich broth while woody humulene anchors the palate.',
+      townSoundtrack: 'Sem City Chris — "Mobbin\' in the West"',
+      sensoryRitual: 'Sip a spoonful of potlikker while the woodsy aroma clears the air.',
+    },
+    dish_3: {
+      primaryTerpene: 'Caryophyllene',
+      secondaryTerpene: 'Pinene',
+      aromaBouquet: 'Toasted black pepper, pine needles, and sweet charred paprika.',
+      palateNote: 'Pinene cleanses after rich butter fat, while warm caryophyllene balances the spice.',
+      townSoundtrack: 'Sem City Chris — "Lake Merritt Sunset"',
+      sensoryRitual: 'Crush fresh herbs between your fingers before taking a forkful of rice.',
+    },
+    dish_4: {
+      primaryTerpene: 'Linalool',
+      secondaryTerpene: 'Myrcene',
+      aromaBouquet: 'Sun-warmed lavender, stewed peach stone fruit, roasted nutmeg.',
+      palateNote: 'Floral linalool smooths over the bourbon kick and leaves a velvety finish.',
+      townSoundtrack: 'Sem City Chris — "Late Night Soul"',
+      sensoryRitual: 'Pair with warm herbal tea to let the lavender linger.',
+    },
+  };
+
+  await new Promise((res) => setTimeout(res, 400));
+  return fallbacks[dish.id] || fallbacks['dish_1'];
+}
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('onboarding');
+  const [selectedTier, setSelectedTier] = useState('Town Family Table');
+  const [activeDish, setActiveDish] = useState(null);
+  const [pairingData, setPairingData] = useState(null);
+  const [loadingPairing, setLoadingPairing] = useState(false);
+  const [audioActive, setAudioActive] = useState(false);
+
+  const tierDishes = POPUP_MENU.filter((item) =>
+    item.tierAccess.includes(selectedTier)
+  );
+
+  const handlePairing = async (dish) => {
+    setActiveDish(dish.id);
+    setLoadingPairing(true);
+    setPairingData(null);
+    const result = await fetchDishSommelier(dish);
+    setPairingData(result);
+    setLoadingPairing(false);
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+
+      {audioActive && (
+        <View style={styles.hiddenAudio}>
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: audioBridgeHTML }}
+            allowsInlineMediaPlayback={true}
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled={true}
+            style={{ width: 1, height: 1, opacity: 0 }}
+          />
+        </View>
+      )}
+
+      {audioActive && (
+        <View style={styles.audioPillBar}>
+          <View style={styles.audioIndicator} />
+          <Text style={styles.audioPillText} numberOfLines={1}>
+            NOW PLAYING: PROD. SEM CITY CHRIS — REAL ONE BY MACZ
+          </Text>
+        </View>
+      )}
+
+      {currentScreen === 'onboarding' && (
+        <View style={styles.centerContainer}>
+          <View style={styles.brandBadge}>
+            <Text style={styles.brandBadgeText}>OAKLAND • CALIFORNIA</Text>
+          </View>
+          <Text style={styles.heroTitle}>SEM CITY</Text>
+          <Text style={styles.heroSubtitle}>COLLECTIVE</Text>
+          <View style={styles.dividerLine} />
+          <Text style={styles.warningTag}>21+ COMMUNITY EXPERIENCE</Text>
+          <Text style={styles.bodyCopy}>
+            A curated pairing of plated soul comfort, botanical terpene flights, and soundtrack lineage curated by{' '}
+            <Text style={styles.boldGold}>Sem City Chris</Text>.
+            {'\n\n'}
+            Physical government ID required upon arrival.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => {
+              setAudioActive(true);
+              setCurrentScreen('dashboard');
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ctaButtonText}>Enter The Collective 🔊</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {currentScreen === 'dashboard' && (
+        <View style={styles.centerContainer}>
+          <Text style={styles.eyebrow}>CURRENT RESIDENCY</Text>
+          <Text style={styles.heroTitle}>TOWN ENERGY</Text>
+          <Text style={styles.locationMeta}>West Oakland Secret Courtyard • 7:00 PM</Text>
+
+          <View style={styles.infoCard}>
+            <Text style={styles.infoCardTitle}>The Three Pillars</Text>
+            <Text style={styles.infoCardItem}>
+              🍗 <Text style={styles.boldWhite}>Plated Comfort:</Text> Scratch recipes, heavy skillets, family plates
+            </Text>
+            <Text style={styles.infoCardItem}>
+              🔊 <Text style={styles.boldWhite}>The Town Sound:</Text> Production by Sem City Chris
+            </Text>
+            <Text style={styles.infoCardItem}>
+              🌿 <Text style={styles.boldWhite}>Botanical Flight:</Text> Non-combustive aromatic terpene pairings
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => setCurrentScreen('booking')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ctaButtonText}>Reserve Table & View Pairings</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.ghostButton}
+            onPress={() => setCurrentScreen('onboarding')}
+          >
+            <Text style={styles.ghostButtonText}>Back to Verification</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {currentScreen === 'booking' && (
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.eyebrow}>SEM CITY COLLECTIVE PRESENTS</Text>
+          <Text style={styles.screenHeading}>Choose Your Seat</Text>
+
+          <View style={styles.tierToggleRow}>
+            <TouchableOpacity
+              style={[
+                styles.tierBox,
+                selectedTier === 'Town Family Table' && styles.tierBoxActive,
+              ]}
+              onPress={() => {
+                setSelectedTier('Town Family Table');
+                setPairingData(null);
+                setActiveDish(null);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.tierLabel}>COMMUNAL</Text>
+              <Text style={styles.tierTitle}>Town Family Table</Text>
+              <Text style={styles.tierPrice}>$65</Text>
+              <Text style={styles.tierDesc}>Long communal wooden tables • 3 courses • Shared vinyl vibes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.tierBox,
+                selectedTier === 'VIP Exquisite' && styles.tierBoxActive,
+              ]}
+              onPress={() => {
+                setSelectedTier('VIP Exquisite');
+                setPairingData(null);
+                setActiveDish(null);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.tierLabelGold}>RESERVED</Text>
+              <Text style={styles.tierTitle}>VIP Exquisite</Text>
+              <Text style={styles.tierPriceGold}>$120</Text>
+              <Text style={styles.tierDesc}>Intimate seating • Full 4 courses • Botanical aromatic flight</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sommelierHeaderRow}>
+            <Text style={styles.sommelierTitle}>The Flavor Sommelier</Text>
+            <Text style={styles.sommelierSub}>
+              Tap dishes to preview aroma bouquets & Chris's track cuts
+            </Text>
+          </View>
+
+          {tierDishes.map((dish) => {
+            const isSelected = activeDish === dish.id;
+            return (
+              <View key={dish.id} style={styles.dishCard}>
+                <View style={styles.dishTop}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={styles.dishBadge}>{dish.badge}</Text>
+                    <Text style={styles.dishName}>{dish.name}</Text>
+                    <Text style={styles.dishSide}>{dish.side}</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.pairPill, isSelected && styles.pairPillActive]}
+                    onPress={() => handlePairing(dish)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.pairPillText}>
+                      {isSelected ? 'Curated' : 'Pair'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {isSelected && loadingPairing && (
+                  <View style={styles.loaderArea}>
+                    <ActivityIndicator color="#DDA74A" size="small" />
+                    <Text style={styles.loaderText}>Blending terpenes with Town sound...</Text>
+                  </View>
+                )}
+
+                {isSelected && pairingData && (
+                  <View style={styles.pairingTray}>
+                    <View style={styles.terpeneTagRow}>
+                      <Text style={styles.terpeneTag}>🌿 {pairingData.primaryTerpene}</Text>
+                      <Text style={styles.terpeneTag}>✨ {pairingData.secondaryTerpene}</Text>
+                    </View>
+                    <Text style={styles.pairingAroma}>"{pairingData.aromaBouquet}"</Text>
+                    <Text style={styles.pairingBody}>{pairingData.palateNote}</Text>
+                    <View style={styles.audioRow}>
+                      <Text style={styles.audioLabel}>PROD. BY CHRIS</Text>
+                      <Text style={styles.audioTrack}>{pairingData.townSoundtrack}</Text>
+                    </View>
+                    <Text style={styles.ritualText}>🕯️ {pairingData.sensoryRitual}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => alert(`Confirmed! You reserved: ${selectedTier}`)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ctaButtonText}>Reserve {selectedTier}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.ghostButton}
+            onPress={() => setCurrentScreen('dashboard')}
+          >
+            <Text style={styles.ghostButtonText}>Back to Dashboard</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+  },
+  hiddenAudio: {
+    position: 'absolute',
+    top: -100,
+    left: -100,
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
+  audioPillBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141E17',
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2F5943',
+  },
+  audioIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#88D49E',
+    marginRight: 8,
+  },
+  audioPillText: {
+    color: '#88D49E',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 26,
+  },
+  scrollContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  brandBadge: {
+    backgroundColor: '#1E382B',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 3,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2F5943',
+  },
+  brandBadgeText: {
+    color: '#88D49E',
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '800',
+  },
+  heroTitle: {
+    color: '#F0EAD6',
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 3,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    color: '#DDA74A',
+    fontSize: 16,
+    letterSpacing: 6,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  dividerLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: '#8D2B1D',
+    marginVertical: 14,
+  },
+  warningTag: {
+    color: '#E06D53',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  eyebrow: {
+    color: '#DDA74A',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2.5,
+  },
+  screenHeading: {
+    color: '#F0EAD6',
+    fontSize: 26,
+    fontWeight: '800',
+    marginVertical: 6,
+  },
+  locationMeta: {
+    color: '#A09C94',
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  bodyCopy: {
+    color: '#C0BCB4',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  boldWhite: {
+    color: '#F0EAD6',
+    fontWeight: '700',
+  },
+  boldGold: {
+    color: '#DDA74A',
+    fontWeight: '700',
+  },
+  infoCard: {
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#262626',
+    borderRadius: 8,
+    padding: 16,
+    width: '100%',
+    marginBottom: 24,
+    marginTop: 20,
+  },
+  infoCardTitle: {
+    color: '#DDA74A',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  infoCardItem: {
+    color: '#B0ACA4',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  ctaButton: {
+    backgroundColor: '#8D2B1D',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 4,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: '#5C1C13',
+  },
+  ctaButtonText: {
+    color: '#F0EAD6',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  ghostButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  ghostButtonText: {
+    color: '#8A867F',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tierToggleRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginVertical: 16,
+  },
+  tierBox: {
+    flex: 1,
+    backgroundColor: '#141414',
+    padding: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
+  tierBoxActive: {
+    borderColor: '#DDA74A',
+    backgroundColor: '#1C1914',
+  },
+  tierLabel: {
+    color: '#8A867F',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  tierLabelGold: {
+    color: '#DDA74A',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  tierTitle: {
+    color: '#F0EAD6',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  tierPrice: {
+    color: '#F0EAD6',
+    fontSize: 22,
+    fontWeight: '900',
+    marginVertical: 4,
+  },
+  tierPriceGold: {
+    color: '#DDA74A',
+    fontSize: 22,
+    fontWeight: '900',
+    marginVertical: 4,
+  },
+  tierDesc: {
+    color: '#8A867F',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  sommelierHeaderRow: {
+    marginTop: 18,
+    marginBottom: 14,
+  },
+  sommelierTitle: {
+    color: '#F0EAD6',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sommelierSub: {
+    color: '#8A867F',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  dishCard: {
+    backgroundColor: '#141414',
+    borderRadius: 6,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
+  dishTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dishBadge: {
+    color: '#DDA74A',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  dishName: {
+    color: '#F0EAD6',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  dishSide: {
+    color: '#8A867F',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  pairPill: {
+    backgroundColor: '#262626',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#383838',
+  },
+  pairPillActive: {
+    backgroundColor: '#8D2B1D',
+    borderColor: '#8D2B1D',
+  },
+  pairPillText: {
+    color: '#F0EAD6',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  loaderArea: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  loaderText: {
+    color: '#8A867F',
+    fontSize: 11,
+    marginTop: 6,
+  },
+  pairingTray: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#242424',
+  },
+  terpeneTagRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  terpeneTag: {
+    backgroundColor: '#1B261F',
+    color: '#88D49E',
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  pairingAroma: {
+    color: '#DDA74A',
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  pairingBody: {
+    color: '#B0ACA4',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  audioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0A',
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  audioLabel: {
+    color: '#8D2B1D',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginRight: 8,
+  },
+  audioTrack: {
+    color: '#F0EAD6',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  ritualText: {
+    color: '#8A867F',
+    fontSize: 11,
+    fontStyle: 'italic',
+  },
+});
