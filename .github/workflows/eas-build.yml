@@ -9,6 +9,8 @@ permissions:
 jobs:
   build_preview_ios:
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,14 +20,27 @@ jobs:
         with:
           node-version: 22
 
+      - name: Check Expo token
+        id: expo_token
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::EXPO_TOKEN is not configured; skipping Expo setup and iOS preview build."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Expo and EAS
+        if: steps.expo_token.outputs.available == 'true'
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
+        if: steps.expo_token.outputs.available == 'true'
         run: npm install
 
       - name: Build iOS preview with EAS
+        if: steps.expo_token.outputs.available == 'true'
         run: eas build --platform ios --profile preview --non-interactive
