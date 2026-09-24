@@ -3,6 +3,9 @@ name: EAS iOS Preview Build
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   build_preview_ios:
     runs-on: ubuntu-latest
