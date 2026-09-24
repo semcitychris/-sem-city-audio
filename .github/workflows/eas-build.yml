@@ -19,6 +19,7 @@ jobs:
           node-version: 22
 
       - name: Setup Expo and EAS
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -31,7 +32,15 @@ jobs:
           fi
 
       - name: Install dependencies
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         run: npm install
 
       - name: Build iOS preview with EAS
+        if: ${{ secrets.EXPO_TOKEN != '' }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform ios --profile preview --non-interactive
+
+      - name: Skip build when EXPO_TOKEN is missing
+        if: ${{ secrets.EXPO_TOKEN == '' }}
+        run: echo "::warning::EXPO_TOKEN is not configured, so the EAS iOS preview build was skipped."
